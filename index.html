@@ -1,0 +1,99 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml">
+
+  <head>
+    <title>Crapography</title>
+
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
+    <script type="text/javascript">
+      // <![CDATA[
+      google.load("jquery", "1");
+      // ]]>
+    </script>
+
+    <script type="text/javascript">
+      // <![CDATA[
+      $(document).ready(function () {
+          var lat = 25.0
+          var lng = 121.48
+          if (google.loader.ClientLocation &&
+              google.loader.ClientLocation.latitude &&
+              google.loader.ClientLocation.longitude) {
+              lat = google.loader.ClientLocation.latitude
+              lng = google.loader.ClientLocation.longitude
+          }
+          var latlng = new google.maps.LatLng(lat, lng);
+
+          var myOptions = {
+              zoom: 12,
+              center: latlng,
+              mapTypeId: google.maps.MapTypeId.ROADMAP
+          };
+          var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+
+          var geocoder = new google.maps.Geocoder();
+          $("#location").change(function () {
+              var address = $(this).val()
+
+              geocoder.geocode({address: address}, function(results, status) {
+                  if (status == google.maps.GeocoderStatus.OK && results.length) {
+                      if (status != google.maps.GeocoderStatus.ZERO_RESULTS) {
+                          map.set_center(results[0].geometry.location);
+                      }
+                  }
+              });
+          });
+
+          google.maps.event.addListener(map, 'rightclick', function (event) {
+              var latLng = event.latLng
+              var marker = new google.maps.Marker({
+                  position: latLng,
+                  map: map
+              });
+
+              var contentString = '<div>Hello World!</div>';
+              var infowindow = new google.maps.InfoWindow({
+                  content: contentString
+              });
+              google.maps.event.addListener(marker, 'click', function (event) {
+                  infowindow.open(map, marker);
+              });
+              infowindow.open(map, marker);
+          });
+
+      });
+      // ]]>
+    </script>
+  </head>
+
+  <body>
+    <div id="input_area" style="width:100%; height:10%">
+      <form id="add" action="/add" method="post" enctype="text/plain">
+        <div>
+          <input type="hidden" name="action" value="add" id="action"/>
+          <span class="error" style="display:none;"></span>
+          <span class="input">
+            <label for="location">Location: </label>
+            <input type="text" name="location" id="location" value=""/>
+            <img src="/images/throbber.gif" alt="throbber" style="vertical-align:middle; display:none;"/>
+          </span>
+          <span class="input">
+            <label for="note">Note: </label>
+            <input type="text" name="note" id="note" value=""/>
+          </span>
+          <span>
+            <button type="submit">Add Crap</button>
+          </span>
+        </div>
+      </form>
+    </div>
+
+    <div id="map_canvas" style="width:100%; height:90%"></div>
+  </body>
+
+</html>

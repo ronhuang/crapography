@@ -1,0 +1,441 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml">
+
+  <head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>Crapography</title>
+    <meta name="description" content="Keep track of where you poo.."/>
+    <meta name="copyright" content="Copyright (c) 2009 Ron Huang"/>
+    <meta name="author" content="Ron Huang"/>
+    <style type="text/css">
+	  body, html {
+		  margin:0;
+		  padding:0;
+		  color:#000;
+		  background:#a7a09a;
+	  }
+	  #wrap {
+		  width:1000px;
+		  margin:0 auto;
+		  background:#99c;
+	  }
+	  #header {
+    	  padding:5px 10px;
+		  background:#ddd;
+	  }
+	  h1 {
+	      margin:0;
+      }
+	  #nav {
+		  padding:5px 10px;
+		  background:#c99;
+	  }
+	  #nav ul {
+		  margin:0;
+		  padding:0;
+		  list-style:none;
+	  }
+	  #nav li {
+		  display:inline;
+		  margin:0;
+		  padding:0;
+	  }
+	  #main {
+		  float:left;
+          width:700px;
+		  padding:0px;
+		  background:#9c9;
+	  }
+	  h2 {
+		  margin:0 0 1em;
+	  }
+	  #sidebar {
+		  float:right;
+		  width:270px;
+		  padding:10px;
+		  background:#99c;
+	  }
+	  #footer {
+		  clear:both;
+		  padding:5px 10px;
+		  background:#cc9;
+	  }
+	  #footer p {
+		  margin:0;
+      }
+	  * html #footer {
+		  height:1px;
+	  }
+      #map_canvas {
+          height:500px;
+      }
+      .footer {
+          color: rgb(85, 102, 68);
+          font-size: 0.75em;
+      }
+      .info {
+          margin: 1em 0 0 0;
+          color: rgb(85, 102, 68);
+          font-size: 0.75em;
+      }
+      .ctl {
+          margin: 1em 0 0 0;
+      }
+      .right {
+          float: right;
+      }
+      .error {
+          display: none;
+          color: rgb(255, 0, 0);
+      }
+      .throbber {
+          vertical-align: middle;
+          display: none;
+      }
+	</style>
+
+    <script type="text/javascript" src="http://www.google.com/jsapi?key=abABQIAAAAnfs7bKE82qgb3Zc2YyS-oBT2yXp_ZAY8_ufC3CFXhHIE1NvwkxSySz_REpPq-4WZA27OwgbtyR3VcA"></script>
+
+    <script type="text/javascript">
+      // <![CDATA[
+      google.load("maps", "2");
+      google.load("jquery", "1");
+      // ]]>
+    </script>
+
+    <script type="text/javascript">
+      // <![CDATA[
+      var reasons = [];
+      reasons[G_GEO_SUCCESS] = "Success";
+      reasons[G_GEO_MISSING_ADDRESS] = "Missing Address";
+      reasons[G_GEO_UNKNOWN_ADDRESS] = "Unknown Address.";
+      reasons[G_GEO_UNAVAILABLE_ADDRESS] = "Unavailable Address";
+      reasons[G_GEO_BAD_KEY] = "Bad API Key";
+      reasons[G_GEO_TOO_MANY_QUERIES] = "Too Many Queries";
+      reasons[G_GEO_SERVER_ERROR] = "Server error";
+
+      // Create a base icon for all of our markers that specifies the
+      // shadow, icon dimensions, etc.
+      var baseIcon = new GIcon(G_DEFAULT_ICON);
+      baseIcon.image = "/images/hankey.png";
+      baseIcon.shadow = "/images/shadow.png";
+      baseIcon.iconSize = new GSize(32, 48);
+      baseIcon.shadowSize = new GSize(60, 48);
+      baseIcon.iconAnchor = new GPoint(8, 48);
+      baseIcon.infoWindowAnchor = new GPoint(18, 2);
+      var hankeyIcon = new GIcon(baseIcon);
+      var markerOptions = {draggable: true, icon: hankeyIcon};
+
+      function geoEncode(map, geo) {
+	      var location = $("#update-location input[name=location]").val();
+          console.log(location)
+
+          if (location == null || location.length <= 0) {
+              return false;
+          }
+
+          $("#update-location .error").fadeOut();
+          $("#update-location .throbber").fadeIn();
+
+	      geo.getLatLng(location, function (latlng){
+              if (latlng) {
+                  map.setCenter(latlng);
+              } else {
+			      $("#update-location .error").html("Location not found").fadeIn();
+              }
+              $("#update-location .throbber").fadeOut();
+	      });
+      }
+
+      function createUUID() {
+          // http://www.ietf.org/rfc/rfc4122.txt
+          var s = [];
+          var hexDigits = "0123456789ABCDEF";
+          for (var i = 0; i < 32; i++) {
+              s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
+          }
+          s[12] = "4";  // bits 12-15 of the time_hi_and_version field to 0010
+          s[16] = hexDigits.substr((s[16] & 0x3) | 0x8, 1);  // bits 6-7 of the clock_seq_hi_and_reserved to 01
+
+          var uuid = s.join("");
+          return uuid;
+      }
+
+      function updateCrap(cid) {
+          $("#" + cid + " .error").fadeOut();
+          $("#" + cid + " .throbber").fadeIn();
+
+          // FIXME: form might not be there.
+          var data = $("#" + cid + " :input").serializeArray();
+
+          console.log(data)
+
+          $.post($("#" + cid).attr('action'), data, function(resp, status) {
+              $("#" + cid + " .throbber").fadeOut();
+
+              console.log(resp, status)
+
+		      if (status == "fail") {
+                  $("#" + cid + " .error").html("Fail to update").fadeIn();
+		      }
+          }, "json");
+      }
+
+      function revertMarker(marker, crap) {
+          var cid = crap.cid
+          var latlng = new GLatLng(crap.lat, crap.lng);
+          marker.setLatLng(latlng);
+
+          $("#" + cid + " .lat").html(latlng.lat());
+          $("#" + cid + " .lng").html(latlng.lng());
+
+          $("#" + cid + " :input[name=lat]").val(latlng.lat());
+          $("#" + cid + " :input[name=lng]").val(latlng.lng());
+
+          $("#" + cid + " :input[name=location]").val(crap.location);
+      }
+
+      GMarker.prototype.setCrap = function(crap) {
+          this.crap = crap;
+      }
+
+      GMarker.prototype.getCrap = function() {
+          return this.crap;
+      }
+
+      GMarker.prototype.setModified = function(modified) {
+          this.modified = modified;
+      }
+
+      GMarker.prototype.isModified = function() {
+          return this.modified;
+      }
+
+      function createMarker(map, point, crap) {
+          var marker = new GMarker(point, markerOptions);
+
+          var uid = 'ronhuang'; // FIXME
+
+          var cid = "";
+          if (crap) {
+              marker.setCrap(crap);
+              cid = crap.cid;
+          } else {
+              cid = createUUID();
+          }
+
+          var location = ""
+          if (crap && crap.location) {
+              location = crap.location;
+          }
+
+          var html = [];
+          html.push('<div>');
+          html.push('  <form id="' + cid + '" action="/update" method="post" enctype="text/plain">');
+          html.push('    <div>');
+          html.push('      <input type="hidden" name="action" value="update"/>');
+          html.push('      <input type="hidden" name="cid" value="' + cid + '"/>');
+          html.push('      <input type="hidden" name="uid" value="' + uid + '"/>');
+          html.push('      <input type="hidden" name="lat" value=""/>');
+          html.push('      <input type="hidden" name="lng" value=""/>');
+          html.push('      <div class="input">');
+          html.push('        <label for="location">Location: </label>');
+          html.push('        <input type="text" name="location" value="' + location + '"/>');
+          html.push('      </div>');
+          html.push('      <div class="info">');
+          html.push('        <div>');
+          html.push('          <span>Latitude: </span>');
+          html.push('          <span class="lat"></span>');
+          html.push('        </div>');
+          html.push('        <div>');
+          html.push('          <span>Longitude: </span>');
+          html.push('          <span class="lng"></span>');
+          html.push('        </div>');
+          html.push('      </div>');
+          html.push('      <div class="ctl">');
+          html.push('        <a href="#" class="delete">Delete</a>');
+          html.push('        <img src="/images/throbber.gif" alt="throbber" class="throbber right"/>');
+          html.push('        <button type="submit" class="right ok">OK</button>');
+          html.push('        <button type="button" class="right cancel">Cancel</button>');
+          html.push('        <span class="error right"></span>');
+          html.push('      </div>');
+          html.push('    </div>');
+          html.push('  </form>');
+          html.push('</div>');
+
+          marker.bindInfoWindowHtml(html.join(""));
+
+          GEvent.addListener(marker, "dragstart", function() {
+              map.closeInfoWindow();
+          });
+          GEvent.addListener(marker, "dragend", function(latlng) {
+              marker.setModified(true);
+              GEvent.trigger(marker, "click");
+          });
+          GEvent.addListener(marker, "infowindowopen", function() {
+              // Update info
+              var latlng = marker.getLatLng();
+
+              $("#" + cid + " .lat").html(latlng.lat());
+              $("#" + cid + " .lng").html(latlng.lng());
+
+              $("#" + cid + " :input[name=lat]").val(latlng.lat());
+              $("#" + cid + " :input[name=lng]").val(latlng.lng());
+
+              if (marker.isModified()) {
+                  updateCrap(cid);
+                  marker.setModified(false);
+              }
+
+              $("#" + cid + " .cancel").click(function () {
+                  map.closeInfoWindow();
+                  var crap = marker.getCrap()
+
+                  if (!crap) {
+                      map.removeOverlay(marker);
+                  }
+              });
+              $("#" + cid).submit(function () {
+                  updateCrap(cid);
+                  return false;
+              });
+          });
+          GEvent.addListener(marker, "infowindowclose", function() {
+              var crap = marker.getCrap()
+
+              if (!crap) {
+                  map.removeOverlay(marker);
+              }
+          });
+
+          return marker;
+      }
+
+      function AddCrapControl() {
+      }
+      AddCrapControl.prototype = new GControl();
+
+      AddCrapControl.prototype.initialize = function(map) {
+          var container = document.createElement("div");
+
+          var addCrapDiv = document.createElement("div");
+          this.setButtonStyle_(addCrapDiv);
+          container.appendChild(addCrapDiv);
+
+          var crapImg = document.createElement("img");
+          crapImg.src = "/images/hankey.png";
+          crapImg.alt = "Mr. Hankey";
+
+          addCrapDiv.appendChild(crapImg);
+          crapImg.style.verticalAlign = "middle";
+          addCrapDiv.appendChild(document.createTextNode("Add"));
+
+          GEvent.addDomListener(addCrapDiv, "click", function() {
+              var latlng = map.getCenter();
+              var marker = createMarker(map, latlng);
+              map.addOverlay(marker);
+              GEvent.trigger(marker, "click");
+          });
+
+          map.getContainer().appendChild(container);
+          return container;
+      }
+
+      AddCrapControl.prototype.getDefaultPosition = function() {
+          return new GControlPosition(G_ANCHOR_TOP_LEFT, new GSize(80, 7));
+      }
+
+      AddCrapControl.prototype.setButtonStyle_ = function(button) {
+          button.style.borderColor = "#AAAAFF #666666 #666666 #AAAAFF";
+          button.style.backgroundColor = "#FFFFFF";
+          button.style.borderStyle = "solid";
+          button.style.borderTopWidth = "2px";
+          button.style.borderRightWidth = "2px";
+          button.style.borderBottomWidth = "2px";
+          button.style.borderLeftWidth = "2px";
+
+          button.style.padding = "2px";
+          button.style.textAlign = "center";
+          button.style.cursor = "pointer";
+      }
+
+      function initialize() {
+          if (GBrowserIsCompatible()) {
+              var lat = 25.044207869951435;
+              var lng = 121.58192753791809;
+
+              if (google.loader.ClientLocation &&
+                  google.loader.ClientLocation.latitude &&
+                  google.loader.ClientLocation.longitude) {
+                  lat = google.loader.ClientLocation.latitude
+                  lng = google.loader.ClientLocation.longitude
+              }
+              var latlng = new GLatLng(lat, lng);
+
+              var map = new GMap2(document.getElementById("map_canvas"));
+              map.setCenter(latlng, 13);
+              map.setUIToDefault();
+              map.addControl(new AddCrapControl());
+
+              var geo = new GClientGeocoder();
+              $("#update-location").submit(function(){
+	              geoEncode(map, geo);
+	              return false;
+              });
+
+              //
+              $.getJSON("/retrieve?uid={{uid}}", function(data, status) {
+                  $.each(data, function(cid, crap) {
+                      var latlng = new GLatLng(crap.lat, crap.lng);
+                      var marker = createMarker(map, latlng, crap);
+                      map.addOverlay(marker);
+                  });
+              });
+          }
+      }
+      // ]]>
+    </script>
+  </head>
+
+  <body onload="initialize()" onunload="GUnload()">
+    <div id="wrap">
+      <div id="header"><h1>Crapography</h1></div>
+
+      <div id="nav">
+        <form id="update-location" action="#" method="post" enctype="text/plain">
+          <div>
+            <input type="hidden" name="action" value="update"/>
+            <span class="input">
+              <label for="location">Location: </label>
+              <input type="text" name="location" value=""/>
+              <img src="/images/throbber.gif" alt="throbber" class="throbber"/>
+              <span class="error"></span>
+            </span>
+            <span>
+              <button type="submit">Update</button>
+            </span>
+          </div>
+        </form>
+      </div>
+
+      <div id="main">
+        <div id="map_canvas"></div>
+      </div>
+
+      <div id="sidebar">
+        <h2>Instruction</h2>
+        <p>Do you think I would write one?</p>
+      </div>
+
+      <div id="footer">
+        <a href="http://ourcomments.org/Emacs/nXhtml/doc/nxhtml.html">
+          <img src="/images/use-nXhtml-trans2.png" alt="nXhtml" class="footer right"/>
+        </a>
+        <p class="footer">Copyright &copy; 2009 ronhuang.org</p>
+        <p class="footer">Design thanks to <a href="http://www.456bereastreet.com/lab/developing_with_web_standards/csslayout/2-col/">Roger Johansson</a></p>
+      </div>
+
+    </div>
+  </body>
+</html>

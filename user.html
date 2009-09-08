@@ -5,7 +5,7 @@
   <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Crapography</title>
-    <meta name="description" content="Keep track of where you poo.."/>
+    <meta name="description" content="Keep track of where you poo..."/>
     <meta name="copyright" content="Copyright (c) 2009 Ron Huang"/>
     <meta name="author" content="Ron Huang"/>
     <style type="text/css">
@@ -385,7 +385,7 @@
               });
 
               //
-              $.getJSON("/retrieve?uid={{uid}}", function(data, status) {
+              $.getJSON("/retrieve/{{uid}}", function(data, status) {
                   $.each(data, function(cid, crap) {
                       var latlng = new GLatLng(crap.lat, crap.lng);
                       var marker = createMarker(map, latlng, crap);

@@ -48,9 +48,7 @@ class MainHandler(webapp.RequestHandler):
 
 class UserHandler(webapp.RequestHandler):
 
-  def get(self):
-    uid = self.request.get('uid')
-
+  def get(self, uid):
     if len(uid) == 0:
       self.redirect("/")
     else:
@@ -86,9 +84,7 @@ class UpdateHandler(webapp.RequestHandler):
 
 class RetrieveHandler(webapp.RequestHandler):
 
-  def get(self):
-    uid = self.request.get('uid')
-
+  def get(self, uid):
     craps = {}
 
     for c in db.GqlQuery("SELECT * FROM Crap WHERE uid = :1", uid):
@@ -98,9 +94,9 @@ class RetrieveHandler(webapp.RequestHandler):
 
 
 application = webapp.WSGIApplication([('/', MainHandler),
-                                      ('/user', UserHandler),
+                                      (r'/user/(.*)', UserHandler),
                                       ('/update', UpdateHandler),
-                                      ('/retrieve', RetrieveHandler)],
+                                      ('/retrieve/(.*)', RetrieveHandler)],
                                      debug=True)
 
 
